@@ -233,6 +233,31 @@ st.markdown("棚の**写真・動画**をアップロードするだけで、商
 
 st.markdown("---")
 
+# ★ モバイル向け：サイドバー案内バナー（設定が未完了の場合のみ表示）
+if not (sheet_url and store_name and area and category):
+    st.markdown(
+        """
+        <div style="
+            background-color: #fff8e1;
+            border-left: 5px solid #f9a825;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        ">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px;">
+                ⚠️ まず設定を入力してください
+            </div>
+            <div style="font-size: 15px; color: #555;">
+                📱 スマホの場合：画面<b>左上の「＞＞」をタップ</b>するとメニューが開きます<br>
+                💻 PCの場合：左側のサイドバーに入力してください
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.markdown("---")
+
 # 使い方フロー
 st.markdown("### 📖 使い方")
 col1, col2, col3, col4 = st.columns(4)
