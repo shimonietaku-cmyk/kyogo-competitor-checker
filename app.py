@@ -110,7 +110,8 @@ def _load_credentials():
 def write_to_sheet(data, sheet_id, store_name, area, own_or_competitor, category):
     creds = _load_credentials()
     client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id).worksheet("シート1")
+    # シート名に依存しないよう、常に1枚目のシートを使用（Sheet1・シート1どちらでも対応）
+    sheet = client.open_by_key(sheet_id).get_worksheet(0)
     rows = [
         [data["date"], area, store_name, own_or_competitor, category, item["name"], item["price"]]
         for item in data["items"]
@@ -222,7 +223,28 @@ with st.sidebar:
         st.warning(f"あと **{missing_count}項目** の入力が必要です")
 
     st.markdown("---")
-    st.caption("※ スプレッドシートはサービスアカウントと共有済みである必要があります")
+
+    # 折りたたみ式：初回設定ガイド
+    with st.expander("📋 初回設定ガイド（スプレッドシートの準備）"):
+        st.markdown("**スプレッドシートを初めて使う場合は以下の手順で設定してください。**")
+        st.markdown("---")
+        st.markdown("**① Googleスプレッドシートを新規作成する**")
+        st.caption("通常のGoogleスプレッドシートを作成するだけでOKです。シート名は変更しなくて大丈夫です。")
+        st.markdown("**② サービスアカウントと共有する**")
+        st.caption("スプレッドシートの「共有」ボタンを押し、以下のメールアドレスを追加してください。")
+
+        # サービスアカウントのメールアドレスを自動表示
+        try:
+            sa_email = st.secrets["gcp_service_account"]["client_email"]
+            st.code(sa_email, language=None)
+            st.caption("権限は「編集者」に設定してください。")
+        except Exception:
+            st.info("（管理者よりサービスアカウントのメールアドレスをご確認ください）")
+
+        st.markdown("**③ スプレッドシートのURLをコピーして上の①に貼り付ける**")
+        st.caption("URLの例：https://docs.google.com/spreadsheets/d/〇〇〇/edit")
+        st.markdown("---")
+        st.caption("※ 設定は最初の1回だけです。次回以降はURLを入力するだけで使えます。")
 
 
 # =====================
