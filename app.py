@@ -22,7 +22,7 @@ st.set_page_config(
 # =====================
 # カスタムCSS + Material Icons
 # =====================
-st.markdown("""
+st.html("""
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 <style>
 /* ---- ベース ---- */
@@ -150,7 +150,7 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {
     font-weight: 600;
 }
 </style>
-""", unsafe_allow_html=True)
+""")
 
 # =====================
 # 設定 & 初期化
