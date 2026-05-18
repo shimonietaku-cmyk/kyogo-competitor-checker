@@ -12,8 +12,8 @@ import streamlit as st
 
 # --- ページ設定（必ず最初に呼ぶ）---
 st.set_page_config(
-    page_title="競合価格チェッカー",
-    page_icon="🛒",
+    page_title="棚パシャ",
+    page_icon="📷",
     layout="centered",
 )
 
@@ -172,9 +172,27 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
 # サイドバー
 # =====================
 with st.sidebar:
-    st.markdown("## ⚙️ 設定")
-    st.info("📌 **最初にここで設定してください**\n\nスマホの場合は左上の **＞＞** をタップすると開きます", icon=None)
+    st.markdown("## 📷 棚パシャ")
+    st.caption("はじめての方はまず下のガイドをご確認ください")
+
+    # ★ 初回設定ガイドを一番上に（デフォルトで開いた状態）
+    with st.expander("🆕 はじめての方へ：初回設定ガイド", expanded=True):
+        st.markdown("**スプレッドシートを1枚用意するだけで使えます。**")
+        st.markdown("---")
+        st.markdown("**STEP 1　Googleスプレッドシートを新規作成**")
+        st.caption("シート名はそのままでOKです。")
+        st.markdown("**STEP 2　以下のアドレスと共有する**")
+        st.caption("スプレッドシートの「共有」→ 下記メールを追加 →「編集者」に設定")
+        try:
+            sa_email = st.secrets["gcp_service_account"]["client_email"]
+            st.code(sa_email, language=None)
+        except Exception:
+            st.info("管理者よりメールアドレスをご確認ください")
+        st.markdown("**STEP 3　URLを下の①欄に貼り付ける**")
+        st.caption("設定は最初の1回だけ。次回以降はURLを入力するだけです。")
+
     st.markdown("---")
+    st.markdown("#### ⚙️ 調査情報を入力")
 
     st.markdown("**① 保存先スプレッドシート**")
     sheet_url = st.text_input(
@@ -217,61 +235,34 @@ with st.sidebar:
     # 設定完了チェック
     all_filled = sheet_url and store_name and area and category
     if all_filled:
-        st.success("✅ 設定完了！\nあとは写真か動画をアップロードしてください")
+        st.success("✅ 準備OK！\n写真か動画をアップロードしてください")
     else:
         missing_count = sum([not sheet_url, not store_name, not area, not category])
         st.warning(f"あと **{missing_count}項目** の入力が必要です")
-
-    st.markdown("---")
-
-    # 折りたたみ式：初回設定ガイド
-    with st.expander("📋 初回設定ガイド（スプレッドシートの準備）"):
-        st.markdown("**スプレッドシートを初めて使う場合は以下の手順で設定してください。**")
-        st.markdown("---")
-        st.markdown("**① Googleスプレッドシートを新規作成する**")
-        st.caption("通常のGoogleスプレッドシートを作成するだけでOKです。シート名は変更しなくて大丈夫です。")
-        st.markdown("**② サービスアカウントと共有する**")
-        st.caption("スプレッドシートの「共有」ボタンを押し、以下のメールアドレスを追加してください。")
-
-        # サービスアカウントのメールアドレスを自動表示
-        try:
-            sa_email = st.secrets["gcp_service_account"]["client_email"]
-            st.code(sa_email, language=None)
-            st.caption("権限は「編集者」に設定してください。")
-        except Exception:
-            st.info("（管理者よりサービスアカウントのメールアドレスをご確認ください）")
-
-        st.markdown("**③ スプレッドシートのURLをコピーして上の①に貼り付ける**")
-        st.caption("URLの例：https://docs.google.com/spreadsheets/d/〇〇〇/edit")
-        st.markdown("---")
-        st.caption("※ 設定は最初の1回だけです。次回以降はURLを入力するだけで使えます。")
 
 
 # =====================
 # メインエリア
 # =====================
-st.markdown("# 🛒 競合価格チェッカー")
-st.markdown("棚の**写真・動画**をアップロードするだけで、商品名と価格を自動で読み取りスプレッドシートに記録します。")
+st.markdown("# 📷 棚パシャ")
+st.markdown("名前のとおり、棚を**パシャッと撮るだけ**で、商品名と価格を自動で読み取りスプレッドシートに記録します。")
 
-st.markdown("---")
-
-# ★ モバイル向け：サイドバー案内バナー（設定が未完了の場合のみ表示）
+# モバイル向け案内バナー（設定未完了時のみ）
 if not (sheet_url and store_name and area and category):
     st.markdown(
         """
         <div style="
-            background-color: #fff8e1;
-            border-left: 5px solid #f9a825;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            background: linear-gradient(135deg, #e3f2fd, #fce4ec);
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin: 16px 0;
         ">
-            <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px;">
-                ⚠️ まず設定を入力してください
+            <div style="font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px;">
+                👈 まず左のメニューを開いて設定してください
             </div>
-            <div style="font-size: 15px; color: #555;">
-                📱 スマホの場合：画面<b>左上の「＞＞」をタップ</b>するとメニューが開きます<br>
-                💻 PCの場合：左側のサイドバーに入力してください
+            <div style="font-size: 14px; color: #555; line-height: 1.7;">
+                📱 スマホの方：画面<b>左上の「＞＞」をタップ</b><br>
+                💻 PCの方：左側のサイドバーに入力
             </div>
         </div>
         """,
@@ -280,28 +271,46 @@ if not (sheet_url and store_name and area and category):
 
 st.markdown("---")
 
-# 使い方フロー
-st.markdown("### 📖 使い方")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.markdown("**STEP 1**\n\n⚙️\n\n左メニューで店舗情報を入力")
-with col2:
-    st.markdown("**STEP 2**\n\n📷\n\n写真または動画をアップロード")
-with col3:
-    st.markdown("**STEP 3**\n\n🔍\n\n「解析スタート」を押す")
-with col4:
-    st.markdown("**STEP 4**\n\n💾\n\nスプレッドシートに保存")
+# 使い方フロー（シンプルなステップ）
+st.markdown("### 使い方")
+st.markdown(
+    """
+    <div style="display: flex; gap: 8px; margin: 8px 0 20px 0; flex-wrap: wrap;">
+        <div style="flex:1; min-width:120px; background:#f8f9fa; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px;">⚙️</div>
+            <div style="font-size:12px; color:#888; margin:4px 0;">STEP 1</div>
+            <div style="font-size:13px; font-weight:bold;">左メニューで<br>店舗情報を入力</div>
+        </div>
+        <div style="flex:1; min-width:120px; background:#f8f9fa; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px;">📷</div>
+            <div style="font-size:12px; color:#888; margin:4px 0;">STEP 2</div>
+            <div style="font-size:13px; font-weight:bold;">棚を<br>パシャッと撮る</div>
+        </div>
+        <div style="flex:1; min-width:120px; background:#f8f9fa; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px;">🤖</div>
+            <div style="font-size:12px; color:#888; margin:4px 0;">STEP 3</div>
+            <div style="font-size:13px; font-weight:bold;">AIが自動で<br>価格を読み取る</div>
+        </div>
+        <div style="flex:1; min-width:120px; background:#f8f9fa; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px;">📊</div>
+            <div style="font-size:12px; color:#888; margin:4px 0;">STEP 4</div>
+            <div style="font-size:13px; font-weight:bold;">スプレッドシートに<br>自動保存</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown("---")
 
 # タブ（写真を先に）
-tab_photo, tab_video = st.tabs(["📷 写真で解析（おすすめ）", "🎬 動画で解析"])
+tab_photo, tab_video = st.tabs(["📷 写真でパシャッと解析（おすすめ）", "🎬 動画で解析"])
 
 # =====================
 # 写真タブ（デフォルト）
 # =====================
 with tab_photo:
-    st.markdown("#### STEP 2：写真をアップロードする")
+    st.markdown("#### STEP 2：写真をアップロードする ＝ パシャッと撮るだけ")
     st.caption("📌 棚全体が写るように撮影すると、より多くの商品を読み取れます（数秒で完了）")
 
     photo_file = st.file_uploader(
