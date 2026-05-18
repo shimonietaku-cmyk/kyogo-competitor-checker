@@ -258,11 +258,10 @@ if not (sheet_url and store_name and area and category):
             margin: 16px 0;
         ">
             <div style="font-size: 17px; font-weight: bold; color: #333; margin-bottom: 8px;">
-                👈 まず左のメニューを開いて設定してください
+                👆 画面左上の「＞＞」をタップして設定してください
             </div>
-            <div style="font-size: 14px; color: #555; line-height: 1.7;">
-                📱 スマホの方：画面<b>左上の「＞＞」をタップ</b><br>
-                💻 PCの方：左側のサイドバーに入力
+            <div style="font-size: 14px; color: #555;">
+                設定が完了するとこの案内は消えます
             </div>
         </div>
         """,
