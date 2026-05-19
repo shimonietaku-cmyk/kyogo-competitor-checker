@@ -171,8 +171,13 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
 # =====================
 # サイドバー
 # =====================
+LOGO_PATH = "tana_pasha_logo.png"
+
 with st.sidebar:
-    st.markdown("## 📷 棚パシャ")
+    if os.path.exists(LOGO_PATH):
+        st.image(LOGO_PATH, width=90)
+    else:
+        st.markdown("## 📷 棚パシャ")
     st.caption("はじめての方はまず下のガイドをご確認ください")
 
     # ★ 初回設定ガイドを一番上に（デフォルトで開いた状態）
@@ -244,7 +249,12 @@ with st.sidebar:
 # =====================
 # メインエリア
 # =====================
-st.markdown("# 📷 棚パシャ")
+col_logo, col_title = st.columns([1, 5])
+with col_logo:
+    if os.path.exists(LOGO_PATH):
+        st.image(LOGO_PATH, width=60)
+with col_title:
+    st.markdown("# 棚パシャ")
 st.markdown("名前のとおり、棚を**パシャッと撮るだけ**で、商品名と価格を自動で読み取りスプレッドシートに記録します。")
 
 # モバイル向け案内バナー（設定未完了時のみ）
