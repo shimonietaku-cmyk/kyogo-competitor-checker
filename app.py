@@ -17,6 +17,20 @@ st.set_page_config(
     layout="centered",
 )
 
+# --- 不要なデフォルトUIを非表示 ---
+st.html("""
+<style>
+/* ハンバーガーメニュー（右上の三点リーダー） */
+[data-testid="stToolbarActions"] { display: none !important; }
+/* Deployボタン */
+[data-testid="stAppDeployButton"] { display: none !important; }
+/* 最下部の「Made with Streamlit」フッター */
+footer { display: none !important; }
+/* フッター上部の「Running...」バナー（任意） */
+[data-testid="stStatusWidget"] { display: none !important; }
+</style>
+""")
+
 # --- 設定 ---
 load_dotenv()
 CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH", "credentials.json")
