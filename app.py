@@ -17,17 +17,59 @@ st.set_page_config(
     layout="centered",
 )
 
-# --- 不要なデフォルトUIを非表示 ---
+# --- カスタムスタイル（ステップ2＋3） ---
 st.html("""
 <style>
-/* ハンバーガーメニュー（右上の三点リーダー） */
-[data-testid="stToolbarActions"] { display: none !important; }
-/* Deployボタン */
+/* ========== ステップ2: 不要なデフォルトUIを非表示 ========== */
+[data-testid="stToolbarActions"]  { display: none !important; }
 [data-testid="stAppDeployButton"] { display: none !important; }
-/* 最下部の「Made with Streamlit」フッター */
-footer { display: none !important; }
-/* フッター上部の「Running...」バナー（任意） */
-[data-testid="stStatusWidget"] { display: none !important; }
+footer                            { display: none !important; }
+[data-testid="stStatusWidget"]    { display: none !important; }
+
+/* ========== ステップ3: 安全な装飾（角丸・影・余白） ========== */
+
+/* --- ボタン --- */
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-secondary"] {
+    border-radius: 8px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10) !important;
+    transition: box-shadow 0.15s ease !important;
+}
+[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-secondary"]:hover {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15) !important;
+}
+
+/* --- テキスト入力・テキストエリア・セレクトボックス --- */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stSelectbox"] > div > div {
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+}
+
+/* --- ファイルアップローダー --- */
+[data-testid="stFileUploader"] {
+    border-radius: 10px !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08) !important;
+}
+
+/* --- サイドバーコンテナ --- */
+[data-testid="stSidebar"] > div:first-child {
+    border-right: 1px solid #e2e8f0 !important;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.05) !important;
+}
+
+/* --- メインエリアの行間・読みやすさ --- */
+[data-testid="stMarkdownContainer"] p {
+    line-height: 1.75 !important;
+}
+
+/* --- success / warning / error アラート --- */
+[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
+}
 </style>
 """)
 
