@@ -11,9 +11,11 @@ import gspread
 import streamlit as st
 
 # --- ページ設定（必ず最初に呼ぶ）---
+LOGO_PATH = "tana_pasha_logo_new.png"
+
 st.set_page_config(
     page_title="棚パシャ",
-    page_icon="📷",
+    page_icon=LOGO_PATH if os.path.exists(LOGO_PATH) else "📷",
     layout="centered",
 )
 
@@ -118,7 +120,7 @@ def analyze_video(tmp_path, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash",
                 contents=[video_file, prompt]
             )
             return response.text
@@ -134,7 +136,7 @@ def analyze_image(image_bytes, mime_type, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash",
                 contents=[image_part, prompt]
             )
             return response.text
@@ -236,8 +238,6 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
 # =====================
 # サイドバー
 # =====================
-LOGO_PATH = "tana_pasha_logo.png"
-
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
         st.image(LOGO_PATH, width=90)
