@@ -120,7 +120,7 @@ def analyze_video(tmp_path, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash-lite",
+                model="gemini-2.5-flash",
                 contents=[video_file, prompt]
             )
             return response.text
@@ -136,7 +136,7 @@ def analyze_image(image_bytes, mime_type, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash-lite",
+                model="gemini-2.5-flash",
                 contents=[image_part, prompt]
             )
             return response.text
