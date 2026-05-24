@@ -4,7 +4,7 @@
 - ステータス: 販売中
 - アプリURL: https://kyogo-competitor-checker-vgesbgwjjcnbfasjaswwvz.streamlit.app/
 - 販売URL: https://ja3cbmdaa4paxhwo68uf.stores.jp/
-- 技術構成: Streamlit + Gemini API (gemini-2.0-flash)
+- 技術構成: Streamlit + Gemini API (gemini-2.5-flash)
 
 ## 料金設計
 - 無料: 月30回まで
