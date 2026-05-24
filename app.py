@@ -79,7 +79,16 @@ CREDENTIALS_PATH = os.environ.get("CREDENTIALS_PATH", "credentials.json")
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
 TODAY = date.today().strftime("%Y/%m/%d")
 
+# --- 利用制限 設定（変更する場合はここだけ書き換える）---
+ACCESS_KEY = "TANAPASS2024"   # 有料ユーザーのアクセスキー
+FREE_LIMIT = 30               # 無料ユーザーの月間解析上限回数
+STORE_URL  = "https://ja3cbmdaa4paxhwo68uf.stores.jp/"
+
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+# --- セッション初期化 ---
+if "analysis_count" not in st.session_state:
+    st.session_state["analysis_count"] = 0
 
 
 def build_prompt(today, media_type="動画"):
@@ -109,7 +118,7 @@ def analyze_video(tmp_path, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.0-flash",
                 contents=[video_file, prompt]
             )
             return response.text
@@ -125,7 +134,7 @@ def analyze_image(image_bytes, mime_type, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-flash-latest",
+                model="gemini-2.0-flash",
                 contents=[image_part, prompt]
             )
             return response.text
@@ -235,6 +244,25 @@ with st.sidebar:
     else:
         st.markdown("## 📷 棚パシャ")
     st.caption("はじめての方はまず下のガイドをご確認ください")
+
+    # --- アクセスキー入力 ---
+    key_input = st.text_input(
+        "🔑 アクセスキー（有料プランの方）",
+        type="password",
+        placeholder="キーを入力すると無制限で使えます",
+    )
+    is_premium = key_input.strip() == ACCESS_KEY
+
+    if is_premium:
+        st.success("✅ 有料プラン：解析回数 **無制限**")
+    else:
+        remaining = max(0, FREE_LIMIT - st.session_state["analysis_count"])
+        if remaining > 0:
+            st.info(f"🆓 無料プラン：残り **{remaining} 回** / {FREE_LIMIT}回")
+        else:
+            st.error(f"⛔ 無料枠（{FREE_LIMIT}回）を使い切りました")
+
+    st.markdown("---")
 
     # ★ 初回設定ガイドを一番上に（デフォルトで開いた状態）
     with st.expander("🆕 はじめての方へ：初回設定ガイド", expanded=True):
@@ -388,22 +416,29 @@ with tab_photo:
     if photo_file is not None:
         st.image(photo_file, use_container_width=True)
         st.markdown("#### STEP 3：解析する")
-        if st.button("🔍 解析スタート", type="primary", key="photo_analyze", use_container_width=True):
-            try:
-                mime_map = {
-                    "jpg": "image/jpeg", "jpeg": "image/jpeg",
-                    "png": "image/png", "webp": "image/webp",
-                    "heic": "image/heic",
-                }
-                ext = photo_file.name.split(".")[-1].lower()
-                mime_type = mime_map.get(ext, "image/jpeg")
-                image_bytes = photo_file.read()
-                with st.spinner("🤖 AIが写真を解析中です。少々お待ちください..."):
-                    raw_text = analyze_image(image_bytes, mime_type, build_prompt(TODAY, "写真"))
-                    result = parse_json(raw_text)
-                st.session_state["photo_result"] = result
-            except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+        can_analyze = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
+        if can_analyze:
+            if st.button("🔍 解析スタート", type="primary", key="photo_analyze", use_container_width=True):
+                try:
+                    mime_map = {
+                        "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                        "png": "image/png", "webp": "image/webp",
+                        "heic": "image/heic",
+                    }
+                    ext = photo_file.name.split(".")[-1].lower()
+                    mime_type = mime_map.get(ext, "image/jpeg")
+                    image_bytes = photo_file.read()
+                    with st.spinner("🤖 AIが写真を解析中です。少々お待ちください..."):
+                        raw_text = analyze_image(image_bytes, mime_type, build_prompt(TODAY, "写真"))
+                        result = parse_json(raw_text)
+                    st.session_state["photo_result"] = result
+                    st.session_state["analysis_count"] += 1
+                except Exception as e:
+                    st.error(f"エラーが発生しました: {e}")
+        else:
+            st.error(f"今月の無料枠（{FREE_LIMIT}回）を使い切りました")
+            st.info("続けて使うには有料プランをご検討ください")
+            st.link_button("🛒 プランを見る →", STORE_URL, use_container_width=True)
     else:
         st.markdown(
             """
@@ -438,19 +473,26 @@ with tab_video:
     if video_file is not None:
         st.video(video_file)
         st.markdown("#### STEP 3：解析する")
-        if st.button("🔍 解析スタート", type="primary", key="video_analyze", use_container_width=True):
-            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                tmp.write(video_file.read())
-                tmp_path = tmp.name
-            try:
-                with st.spinner("🤖 AIが動画を解析中です。30秒〜1分ほどお待ちください..."):
-                    raw_text = analyze_video(tmp_path, build_prompt(TODAY, "動画"))
-                    result = parse_json(raw_text)
-                st.session_state["video_result"] = result
-            except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
-            finally:
-                os.unlink(tmp_path)
+        can_analyze = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
+        if can_analyze:
+            if st.button("🔍 解析スタート", type="primary", key="video_analyze", use_container_width=True):
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp.write(video_file.read())
+                    tmp_path = tmp.name
+                try:
+                    with st.spinner("🤖 AIが動画を解析中です。30秒〜1分ほどお待ちください..."):
+                        raw_text = analyze_video(tmp_path, build_prompt(TODAY, "動画"))
+                        result = parse_json(raw_text)
+                    st.session_state["video_result"] = result
+                    st.session_state["analysis_count"] += 1
+                except Exception as e:
+                    st.error(f"エラーが発生しました: {e}")
+                finally:
+                    os.unlink(tmp_path)
+        else:
+            st.error(f"今月の無料枠（{FREE_LIMIT}回）を使い切りました")
+            st.info("続けて使うには有料プランをご検討ください")
+            st.link_button("🛒 プランを見る →", STORE_URL, use_container_width=True)
     else:
         st.markdown(
             """
