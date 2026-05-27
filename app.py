@@ -191,7 +191,7 @@ def write_to_sheet(data, sheet_id, store_name, area, own_or_competitor, category
     return len(rows)
 
 
-def show_result_and_save(result, store_name, area, own_or_competitor, category, sheet_url, is_premium=False):
+def show_result_and_save(result, store_name, area, own_or_competitor, category, sheet_url, is_premium=False, tab_key="default"):
     st.success(f"✅ 解析完了！　{len(result['items'])} 商品を検出しました")
 
     st.markdown(f"**📅 撮影日：** {result['date']}")
@@ -226,7 +226,7 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
     else:
         can_save = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
         if can_save:
-            if st.button("💾 スプレッドシートに保存する", type="primary", use_container_width=True):
+            if st.button("💾 スプレッドシートに保存する", type="primary", use_container_width=True, key=f"save_{tab_key}"):
                 try:
                     sheet_id = extract_sheet_id(sheet_url)
                     with st.spinner("保存中..."):
@@ -457,7 +457,8 @@ with tab_photo:
         st.markdown("---")
         show_result_and_save(
             st.session_state["photo_result"],
-            store_name, area, own_or_competitor, category, sheet_url, is_premium
+            store_name, area, own_or_competitor, category, sheet_url, is_premium,
+            tab_key="photo"
         )
 
 # =====================
@@ -511,5 +512,6 @@ with tab_video:
         st.markdown("---")
         show_result_and_save(
             st.session_state["video_result"],
-            store_name, area, own_or_competitor, category, sheet_url, is_premium
+            store_name, area, own_or_competitor, category, sheet_url, is_premium,
+            tab_key="video"
         )
