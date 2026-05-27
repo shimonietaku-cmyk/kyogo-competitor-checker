@@ -82,9 +82,10 @@ SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
 TODAY = date.today().strftime("%Y/%m/%d")
 
 # --- 利用制限 設定（変更する場合はここだけ書き換える）---
-ACCESS_KEY = "TANAPASS2024"   # 有料ユーザーのアクセスキー
-FREE_LIMIT = 2                # 無料ユーザーの月間解析上限回数（※テスト中：確認後30に戻す）
-STORE_URL  = "https://ja3cbmdaa4paxhwo68uf.stores.jp/"
+ACCESS_KEY   = "TANAPASS2024"        # 有料ユーザーのアクセスキー
+FREE_LIMIT   = 2                     # 無料ユーザーの月間解析上限回数（※テスト中：確認後30に戻す）
+STORE_URL    = "https://ja3cbmdaa4paxhwo68uf.stores.jp/"
+GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/19 Stable）
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
@@ -117,18 +118,19 @@ def analyze_video(tmp_path, prompt):
         video_file = gemini_client.files.get(name=video_file.name)
     if video_file.state.name == "FAILED":
         raise ValueError("動画の処理に失敗しました")
-    for attempt in range(3):
+    last_error = None
+    for attempt in range(5):  # 最大5回リトライ
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
                 contents=[video_file, prompt]
             )
             return response.text
-        except Exception:
-            if attempt < 2:
-                time.sleep(30)
-            else:
-                raise
+        except Exception as e:
+            last_error = e
+            if attempt < 4:
+                time.sleep(15)  # 15秒待機（混雑時は短い間隔で再試行）
+    raise last_error
 
 
 def analyze_image(image_bytes, mime_type, prompt):
@@ -136,7 +138,7 @@ def analyze_image(image_bytes, mime_type, prompt):
     for attempt in range(3):
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
                 contents=[image_part, prompt]
             )
             return response.text
@@ -480,12 +482,19 @@ with tab_video:
                 tmp.write(video_file.read())
                 tmp_path = tmp.name
             try:
-                with st.spinner("🤖 AIが動画を解析中です。30秒〜1分ほどお待ちください..."):
+                with st.spinner("🤖 AIが動画を解析中です。混雑時は自動で再試行します（最大1〜2分）..."):
                     raw_text = analyze_video(tmp_path, build_prompt(TODAY, "動画"))
                     result = parse_json(raw_text)
                 st.session_state["video_result"] = result
             except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+                err = str(e)
+                if "503" in err or "UNAVAILABLE" in err:
+                    st.error("⚠️ AIサーバーが混雑しています。数分後に再度お試しください。")
+                    st.info("📷 写真での解析は通常どおりご利用いただけます。")
+                elif "FAILED" in err:
+                    st.error("動画の読み込みに失敗しました。別の動画ファイルをお試しください。")
+                else:
+                    st.error(f"エラーが発生しました: {e}")
             finally:
                 os.unlink(tmp_path)
     else:
