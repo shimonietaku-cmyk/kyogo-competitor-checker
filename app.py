@@ -83,7 +83,7 @@ TODAY = date.today().strftime("%Y/%m/%d")
 
 # --- 利用制限 設定（変更する場合はここだけ書き換える）---
 ACCESS_KEY = "TANAPASS2024"   # 有料ユーザーのアクセスキー
-FREE_LIMIT = 30               # 無料ユーザーの月間解析上限回数
+FREE_LIMIT = 2                # 無料ユーザーの月間解析上限回数（※テスト中：確認後30に戻す）
 STORE_URL  = "https://ja3cbmdaa4paxhwo68uf.stores.jp/"
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
