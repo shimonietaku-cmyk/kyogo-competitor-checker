@@ -9,6 +9,7 @@ from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 import gspread
 import streamlit as st
+from streamlit_javascript import st_javascript
 
 # --- ページ設定（必ず最初に呼ぶ）---
 LOGO_PATH = "tana_pasha_logo_new.png"
@@ -89,9 +90,23 @@ GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# --- セッション初期化 ---
+# --- カウントをlocalStorageから復元（リロード対策） ---
+_LS_COUNT_KEY = "tana_pasha_count"
+_LS_MONTH_KEY = "tana_pasha_month"
+_CURRENT_MONTH = TODAY[:7]  # "2026/05" 形式
+
+_ls_count = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
+_ls_month = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
+
 if "analysis_count" not in st.session_state:
-    st.session_state["analysis_count"] = 0
+    if _ls_month == _CURRENT_MONTH and _ls_count is not None:
+        try:
+            st.session_state["analysis_count"] = int(_ls_count)
+        except (ValueError, TypeError):
+            st.session_state["analysis_count"] = 0
+    else:
+        # 月が変わっていたらリセット
+        st.session_state["analysis_count"] = 0
 
 
 def build_prompt(today, media_type="動画"):
@@ -232,6 +247,10 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
                     with st.spinner("保存中..."):
                         count = write_to_sheet(result, sheet_id, store_name, area, own_or_competitor, category)
                     st.session_state["analysis_count"] += 1
+                    # localStorageにも保存（リロード後も維持）
+                    _new = st.session_state["analysis_count"]
+                    st_javascript(f"localStorage.setItem('{_LS_COUNT_KEY}', '{_new}')")
+                    st_javascript(f"localStorage.setItem('{_LS_MONTH_KEY}', '{_CURRENT_MONTH}')")
                     st.success(f"✅ {count}行を保存しました！")
                     st.link_button(
                         "📊 スプレッドシートを開く →",
