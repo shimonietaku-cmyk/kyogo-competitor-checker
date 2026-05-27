@@ -183,11 +183,13 @@ def write_to_sheet(data, sheet_id, store_name, area, own_or_competitor, category
         [data["date"], area, store_name, own_or_competitor, category, item["name"], item["price"]]
         for item in data["items"]
     ]
-    sheet.append_rows(rows)
+    # 現在の行数を取得してA列から追記（append_rowsの列ズレ防止）
+    next_row = len(sheet.get_all_values()) + 1
+    sheet.update(f"A{next_row}", rows, value_input_option="USER_ENTERED")
     return len(rows)
 
 
-def show_result_and_save(result, store_name, area, own_or_competitor, category, sheet_url):
+def show_result_and_save(result, store_name, area, own_or_competitor, category, sheet_url, is_premium=False):
     st.success(f"✅ 解析完了！　{len(result['items'])} 商品を検出しました")
 
     st.markdown(f"**📅 撮影日：** {result['date']}")
@@ -220,19 +222,26 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
             missing.append("スプレッドシートURL")
         st.warning(f"⚠️ 左のメニューで未入力の項目があります：{'、'.join(missing)}")
     else:
-        if st.button("💾 スプレッドシートに保存する", type="primary", use_container_width=True):
-            try:
-                sheet_id = extract_sheet_id(sheet_url)
-                with st.spinner("保存中..."):
-                    count = write_to_sheet(result, sheet_id, store_name, area, own_or_competitor, category)
-                st.success(f"✅ {count}行を保存しました！")
-                st.link_button(
-                    "📊 スプレッドシートを開く →",
-                    f"https://docs.google.com/spreadsheets/d/{sheet_id}",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.error(f"保存エラー: {e}")
+        can_save = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
+        if can_save:
+            if st.button("💾 スプレッドシートに保存する", type="primary", use_container_width=True):
+                try:
+                    sheet_id = extract_sheet_id(sheet_url)
+                    with st.spinner("保存中..."):
+                        count = write_to_sheet(result, sheet_id, store_name, area, own_or_competitor, category)
+                    st.session_state["analysis_count"] += 1
+                    st.success(f"✅ {count}行を保存しました！")
+                    st.link_button(
+                        "📊 スプレッドシートを開く →",
+                        f"https://docs.google.com/spreadsheets/d/{sheet_id}",
+                        use_container_width=True,
+                    )
+                except Exception as e:
+                    st.error(f"保存エラー: {e}")
+        else:
+            st.error(f"今月の無料枠（{FREE_LIMIT}回）を使い切りました")
+            st.info("続けて使うには有料プランをご検討ください")
+            st.link_button("🛒 プランを見る →", STORE_URL, use_container_width=True)
 
 
 # =====================
@@ -416,29 +425,22 @@ with tab_photo:
     if photo_file is not None:
         st.image(photo_file, use_container_width=True)
         st.markdown("#### STEP 3：解析する")
-        can_analyze = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
-        if can_analyze:
-            if st.button("🔍 解析スタート", type="primary", key="photo_analyze", use_container_width=True):
-                try:
-                    mime_map = {
-                        "jpg": "image/jpeg", "jpeg": "image/jpeg",
-                        "png": "image/png", "webp": "image/webp",
-                        "heic": "image/heic",
-                    }
-                    ext = photo_file.name.split(".")[-1].lower()
-                    mime_type = mime_map.get(ext, "image/jpeg")
-                    image_bytes = photo_file.read()
-                    with st.spinner("🤖 AIが写真を解析中です。少々お待ちください..."):
-                        raw_text = analyze_image(image_bytes, mime_type, build_prompt(TODAY, "写真"))
-                        result = parse_json(raw_text)
-                    st.session_state["photo_result"] = result
-                    st.session_state["analysis_count"] += 1
-                except Exception as e:
-                    st.error(f"エラーが発生しました: {e}")
-        else:
-            st.error(f"今月の無料枠（{FREE_LIMIT}回）を使い切りました")
-            st.info("続けて使うには有料プランをご検討ください")
-            st.link_button("🛒 プランを見る →", STORE_URL, use_container_width=True)
+        if st.button("🔍 解析スタート", type="primary", key="photo_analyze", use_container_width=True):
+            try:
+                mime_map = {
+                    "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                    "png": "image/png", "webp": "image/webp",
+                    "heic": "image/heic",
+                }
+                ext = photo_file.name.split(".")[-1].lower()
+                mime_type = mime_map.get(ext, "image/jpeg")
+                image_bytes = photo_file.read()
+                with st.spinner("🤖 AIが写真を解析中です。少々お待ちください..."):
+                    raw_text = analyze_image(image_bytes, mime_type, build_prompt(TODAY, "写真"))
+                    result = parse_json(raw_text)
+                st.session_state["photo_result"] = result
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
     else:
         st.markdown(
             """
@@ -453,7 +455,7 @@ with tab_photo:
         st.markdown("---")
         show_result_and_save(
             st.session_state["photo_result"],
-            store_name, area, own_or_competitor, category, sheet_url
+            store_name, area, own_or_competitor, category, sheet_url, is_premium
         )
 
 # =====================
@@ -473,26 +475,19 @@ with tab_video:
     if video_file is not None:
         st.video(video_file)
         st.markdown("#### STEP 3：解析する")
-        can_analyze = is_premium or st.session_state["analysis_count"] < FREE_LIMIT
-        if can_analyze:
-            if st.button("🔍 解析スタート", type="primary", key="video_analyze", use_container_width=True):
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                    tmp.write(video_file.read())
-                    tmp_path = tmp.name
-                try:
-                    with st.spinner("🤖 AIが動画を解析中です。30秒〜1分ほどお待ちください..."):
-                        raw_text = analyze_video(tmp_path, build_prompt(TODAY, "動画"))
-                        result = parse_json(raw_text)
-                    st.session_state["video_result"] = result
-                    st.session_state["analysis_count"] += 1
-                except Exception as e:
-                    st.error(f"エラーが発生しました: {e}")
-                finally:
-                    os.unlink(tmp_path)
-        else:
-            st.error(f"今月の無料枠（{FREE_LIMIT}回）を使い切りました")
-            st.info("続けて使うには有料プランをご検討ください")
-            st.link_button("🛒 プランを見る →", STORE_URL, use_container_width=True)
+        if st.button("🔍 解析スタート", type="primary", key="video_analyze", use_container_width=True):
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                tmp.write(video_file.read())
+                tmp_path = tmp.name
+            try:
+                with st.spinner("🤖 AIが動画を解析中です。30秒〜1分ほどお待ちください..."):
+                    raw_text = analyze_video(tmp_path, build_prompt(TODAY, "動画"))
+                    result = parse_json(raw_text)
+                st.session_state["video_result"] = result
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
+            finally:
+                os.unlink(tmp_path)
     else:
         st.markdown(
             """
@@ -507,5 +502,5 @@ with tab_video:
         st.markdown("---")
         show_result_and_save(
             st.session_state["video_result"],
-            store_name, area, own_or_competitor, category, sheet_url
+            store_name, area, own_or_competitor, category, sheet_url, is_premium
         )
