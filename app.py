@@ -90,14 +90,17 @@ GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# --- カウントをlocalStorageから復元（リロード対策） ---
+# --- localStorageから復元（リロード対策） ---
 _LS_COUNT_KEY = "tana_pasha_count"
 _LS_MONTH_KEY = "tana_pasha_month"
+_LS_URL_KEY   = "tana_pasha_sheet_url"
 _CURRENT_MONTH = TODAY[:7]  # "2026/05" 形式
 
-_ls_count = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
-_ls_month = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
+_ls_count     = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
+_ls_month     = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
+_ls_sheet_url = st_javascript(f"localStorage.getItem('{_LS_URL_KEY}') || ''")
 
+# カウント復元
 if "analysis_count" not in st.session_state:
     if _ls_month == _CURRENT_MONTH and _ls_count is not None:
         try:
@@ -105,8 +108,12 @@ if "analysis_count" not in st.session_state:
         except (ValueError, TypeError):
             st.session_state["analysis_count"] = 0
     else:
-        # 月が変わっていたらリセット
         st.session_state["analysis_count"] = 0
+
+# スプレッドシートURL復元（実値が返ってきた初回のみ適用）
+if not st.session_state.get("_url_prefilled") and isinstance(_ls_sheet_url, str):
+    st.session_state["_sheet_url_val"] = _ls_sheet_url
+    st.session_state["_url_prefilled"] = True
 
 
 def build_prompt(today, media_type="動画"):
@@ -316,10 +323,15 @@ with st.sidebar:
     st.markdown("**① 保存先スプレッドシート**")
     sheet_url = st.text_input(
         "スプレッドシートURL",
-        value="",
+        value=st.session_state.get("_sheet_url_val", ""),
         placeholder="https://docs.google.com/spreadsheets/d/...",
         label_visibility="collapsed",
     )
+    # 手動で値を追跡（widget key を使わない方式）
+    st.session_state["_sheet_url_val"] = sheet_url
+    # URLが入力されたらlocalStorageに自動保存
+    if sheet_url:
+        st_javascript(f"localStorage.setItem('{_LS_URL_KEY}', '{sheet_url}')")
 
     st.markdown("**② 店舗名**")
     store_name = st.text_input(
