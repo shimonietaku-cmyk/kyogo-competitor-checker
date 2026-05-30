@@ -91,14 +91,16 @@ GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 # --- localStorageから復元（リロード対策） ---
-_LS_COUNT_KEY = "tana_pasha_count"
-_LS_MONTH_KEY = "tana_pasha_month"
-_LS_URL_KEY   = "tana_pasha_sheet_url"
+_LS_COUNT_KEY  = "tana_pasha_count"
+_LS_MONTH_KEY  = "tana_pasha_month"
+_LS_URL_KEY    = "tana_pasha_sheet_url"
+_LS_AKEY_KEY   = "tana_pasha_access_key"
 _CURRENT_MONTH = TODAY[:7]  # "2026/05" 形式
 
-_ls_count     = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
-_ls_month     = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
-_ls_sheet_url = st_javascript(f"localStorage.getItem('{_LS_URL_KEY}') || ''")
+_ls_count      = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
+_ls_month      = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
+_ls_sheet_url  = st_javascript(f"localStorage.getItem('{_LS_URL_KEY}') || ''")
+_ls_access_key = st_javascript(f"localStorage.getItem('{_LS_AKEY_KEY}') || ''")
 
 # カウント復元
 if "analysis_count" not in st.session_state:
@@ -114,6 +116,11 @@ if "analysis_count" not in st.session_state:
 if not st.session_state.get("_url_prefilled") and isinstance(_ls_sheet_url, str):
     st.session_state["_sheet_url_val"] = _ls_sheet_url
     st.session_state["_url_prefilled"] = True
+
+# アクセスキー復元
+if not st.session_state.get("_akey_prefilled") and isinstance(_ls_access_key, str):
+    st.session_state["_access_key_val"] = _ls_access_key
+    st.session_state["_akey_prefilled"] = True
 
 
 def build_prompt(today, media_type="動画"):
@@ -287,7 +294,12 @@ with st.sidebar:
         "🔑 アクセスキー（有料プランの方）",
         type="password",
         placeholder="キーを入力すると無制限で使えます",
+        value=st.session_state.get("_access_key_val", ""),
     )
+    st.session_state["_access_key_val"] = key_input
+    # 正しいキーが入力されたらlocalStorageに保存
+    if key_input.strip() == ACCESS_KEY:
+        st_javascript(f"localStorage.setItem('{_LS_AKEY_KEY}', '{key_input.strip()}')")
     is_premium = key_input.strip() == ACCESS_KEY
 
     if is_premium:
