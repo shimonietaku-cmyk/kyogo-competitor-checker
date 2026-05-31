@@ -3,4 +3,3 @@ python-dotenv
 gspread
 google-auth
 streamlit
-streamlit-javascript

@@ -9,7 +9,6 @@ from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 import gspread
 import streamlit as st
-from streamlit_javascript import st_javascript
 
 # --- ページ設定（必ず最初に呼ぶ）---
 LOGO_PATH = "tana_pasha_logo_new.png"
@@ -90,37 +89,15 @@ GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# --- localStorageから復元（リロード対策） ---
-_LS_COUNT_KEY  = "tana_pasha_count"
-_LS_MONTH_KEY  = "tana_pasha_month"
-_LS_URL_KEY    = "tana_pasha_sheet_url"
-_LS_AKEY_KEY   = "tana_pasha_access_key"
-_CURRENT_MONTH = TODAY[:7]  # "2026/05" 形式
-
-_ls_count      = st_javascript(f"localStorage.getItem('{_LS_COUNT_KEY}')")
-_ls_month      = st_javascript(f"localStorage.getItem('{_LS_MONTH_KEY}')")
-_ls_sheet_url  = st_javascript(f"localStorage.getItem('{_LS_URL_KEY}') || ''")
-_ls_access_key = st_javascript(f"localStorage.getItem('{_LS_AKEY_KEY}') || ''")
-
-# カウント復元
+# --- セッション初期化 ---
 if "analysis_count" not in st.session_state:
-    if _ls_month == _CURRENT_MONTH and _ls_count is not None:
-        try:
-            st.session_state["analysis_count"] = int(_ls_count)
-        except (ValueError, TypeError):
-            st.session_state["analysis_count"] = 0
-    else:
-        st.session_state["analysis_count"] = 0
+    st.session_state["analysis_count"] = 0
 
-# スプレッドシートURL復元（実値が返ってきた初回のみ適用）
-if not st.session_state.get("_url_prefilled") and isinstance(_ls_sheet_url, str):
-    st.session_state["_sheet_url_val"] = _ls_sheet_url
-    st.session_state["_url_prefilled"] = True
-
-# アクセスキー復元
-if not st.session_state.get("_akey_prefilled") and isinstance(_ls_access_key, str):
-    st.session_state["_access_key_val"] = _ls_access_key
-    st.session_state["_akey_prefilled"] = True
+# --- URLパラメータからシートURL・アクセスキーを復元（リロード対策） ---
+if "_sheet_url_val" not in st.session_state:
+    st.session_state["_sheet_url_val"] = st.query_params.get("u", "")
+if "_access_key_val" not in st.session_state:
+    st.session_state["_access_key_val"] = st.query_params.get("k", "")
 
 
 def build_prompt(today, media_type="動画"):
@@ -261,10 +238,6 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
                     with st.spinner("保存中..."):
                         count = write_to_sheet(result, sheet_id, store_name, area, own_or_competitor, category)
                     st.session_state["analysis_count"] += 1
-                    # localStorageにも保存（リロード後も維持）
-                    _new = st.session_state["analysis_count"]
-                    st_javascript(f"localStorage.setItem('{_LS_COUNT_KEY}', '{_new}')")
-                    st_javascript(f"localStorage.setItem('{_LS_MONTH_KEY}', '{_CURRENT_MONTH}')")
                     st.success(f"✅ {count}行を保存しました！")
                     st.link_button(
                         "📊 スプレッドシートを開く →",
@@ -297,9 +270,8 @@ with st.sidebar:
         value=st.session_state.get("_access_key_val", ""),
     )
     st.session_state["_access_key_val"] = key_input
-    # 正しいキーが入力されたらlocalStorageに保存
     if key_input.strip() == ACCESS_KEY:
-        st_javascript(f"localStorage.setItem('{_LS_AKEY_KEY}', '{key_input.strip()}')")
+        st.query_params["k"] = key_input.strip()   # URLパラメータに保存
     is_premium = key_input.strip() == ACCESS_KEY
 
     if is_premium:
@@ -339,11 +311,9 @@ with st.sidebar:
         placeholder="https://docs.google.com/spreadsheets/d/...",
         label_visibility="collapsed",
     )
-    # 手動で値を追跡（widget key を使わない方式）
     st.session_state["_sheet_url_val"] = sheet_url
-    # URLが入力されたらlocalStorageに自動保存
     if sheet_url:
-        st_javascript(f"localStorage.setItem('{_LS_URL_KEY}', '{sheet_url}')")
+        st.query_params["u"] = sheet_url   # URLパラメータに保存（リロード後も復元）
 
     st.markdown("**② 店舗名**")
     store_name = st.text_input(
