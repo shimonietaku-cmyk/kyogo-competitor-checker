@@ -89,11 +89,19 @@ GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/
 
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# --- セッション初期化 ---
-if "analysis_count" not in st.session_state:
-    st.session_state["analysis_count"] = 0
+# --- URLパラメータから全設定を復元（リロード対策） ---
+_CURRENT_MONTH = TODAY[:7]  # 例: "2026/05"
 
-# --- URLパラメータからシートURL・アクセスキーを復元（リロード対策） ---
+if "analysis_count" not in st.session_state:
+    # 月が一致する場合のみ保存済みカウントを復元（月初めに自動リセット）
+    if st.query_params.get("m", "") == _CURRENT_MONTH:
+        try:
+            st.session_state["analysis_count"] = int(st.query_params.get("c", "0"))
+        except (ValueError, TypeError):
+            st.session_state["analysis_count"] = 0
+    else:
+        st.session_state["analysis_count"] = 0
+
 if "_sheet_url_val" not in st.session_state:
     st.session_state["_sheet_url_val"] = st.query_params.get("u", "")
 if "_access_key_val" not in st.session_state:
@@ -238,6 +246,9 @@ def show_result_and_save(result, store_name, area, own_or_competitor, category, 
                     with st.spinner("保存中..."):
                         count = write_to_sheet(result, sheet_id, store_name, area, own_or_competitor, category)
                     st.session_state["analysis_count"] += 1
+                    # カウントをURLパラメータにも保存（リロード後も維持）
+                    st.query_params["c"] = str(st.session_state["analysis_count"])
+                    st.query_params["m"] = _CURRENT_MONTH
                     st.success(f"✅ {count}行を保存しました！")
                     st.link_button(
                         "📊 スプレッドシートを開く →",
