@@ -83,7 +83,7 @@ TODAY = date.today().strftime("%Y/%m/%d")
 
 # --- 利用制限 設定（変更する場合はここだけ書き換える）---
 ACCESS_KEY   = "TANAPASS2024"        # 有料ユーザーのアクセスキー
-FREE_LIMIT   = 2                     # 無料ユーザーの月間解析上限回数（※テスト中：確認後30に戻す）
+FREE_LIMIT   = 30                    # 無料ユーザーの月間解析上限回数
 STORE_URL    = "https://ja3cbmdaa4paxhwo68uf.stores.jp/"
 GEMINI_MODEL = "gemini-3.5-flash"    # 画像・動画共通モデル（2026/05/19 Stable）
 
