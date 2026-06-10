@@ -466,7 +466,11 @@ with tab_photo:
                     result = parse_json(raw_text)
                 st.session_state["photo_result"] = result
             except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+                err = str(e)
+                if "503" in err or "UNAVAILABLE" in err or "429" in err:
+                    st.error("⚠️ AIサーバーが混雑しています。数分後に再度お試しください。")
+                else:
+                    st.error(f"エラーが発生しました: {e}")
     else:
         st.markdown(
             """
